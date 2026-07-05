@@ -16,7 +16,6 @@ export default function StepNetwork({
   detection,
   networks,
   selected,
-  onSelect,
   onConfirm,
   onRedetect,
 }: {
@@ -25,7 +24,6 @@ export default function StepNetwork({
   detection: NetworkDetection | null;
   networks: NetworkDef[];
   selected: string;
-  onSelect: (id: string) => void;
   onConfirm: () => void;
   onRedetect: () => void;
 }) {
@@ -39,7 +37,8 @@ export default function StepNetwork({
   }, [detecting]);
 
   const candidateId = detection?.candidateId ?? selected;
-  const detectedName = networks.find((n) => n.id === candidateId)?.name ?? "";
+  const detectedNet = networks.find((n) => n.id === candidateId) ?? null;
+  const detectedName = detectedNet?.name ?? "";
 
   return (
     <div
@@ -118,84 +117,73 @@ export default function StepNetwork({
               />
             </svg>
             <span style={{ fontSize: 13, color: "#0e5c0e" }}>
-              <b>{detectedName}</b> 환경이 감지되었습니다. 아래에서 확인 후 계속하세요.
+              <b>{detectedName}</b> 환경이 감지되었습니다. 확인 후 계속하세요.
             </span>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {networks.map((n) => {
-              const isSel = selected === n.id;
-              return (
-                <div
-                  key={n.id}
-                  className="net-card"
-                  onClick={() => onSelect(n.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 14,
-                    padding: "16px 18px",
-                    background: "#fff",
-                    border: `1.5px solid ${isSel ? "#0f6cbd" : "#e3e6ea"}`,
-                    borderRadius: 12,
-                    boxShadow: isSel ? "0 0 0 3px rgba(15,108,189,0.12)" : "none",
-                  }}
-                >
-                  <div
+          {detectedNet && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 14,
+                padding: "16px 18px",
+                background: "#fff",
+                border: "1.5px solid #0f6cbd",
+                borderRadius: 12,
+                boxShadow: "0 0 0 3px rgba(15,108,189,0.12)",
+              }}
+            >
+              {/* 자동 판별된 망은 고정 — 사용자가 변경할 수 없으므로 라디오 대신 잠금 표시 */}
+              <svg width="18" height="18" viewBox="0 0 20 20" style={{ flex: "none", marginTop: 2 }}>
+                <rect x="4" y="9" width="12" height="8" rx="1.5" fill="#0f6cbd" />
+                <path
+                  d="M6.5 9V6.8a3.5 3.5 0 0 1 7 0V9"
+                  stroke="#0f6cbd"
+                  strokeWidth="1.8"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <circle cx="10" cy="12.5" r="1.4" fill="#fff" />
+              </svg>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{detectedNet.name}</span>
+                  <span
                     style={{
-                      width: 18,
-                      height: 18,
-                      flex: "none",
-                      marginTop: 2,
-                      borderRadius: "50%",
-                      border: `2px solid ${isSel ? "#0f6cbd" : "#c8cdd4"}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: "#0f6cbd",
+                      background: "#eaf3fb",
+                      borderRadius: 9,
+                      padding: "2px 8px",
                     }}
                   >
-                    {isSel && (
-                      <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#0f6cbd" }} />
-                    )}
-                  </div>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700 }}>{n.name}</span>
-                      {candidateId === n.id && (
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            color: "#0f6cbd",
-                            background: "#eaf3fb",
-                            borderRadius: 9,
-                            padding: "2px 8px",
-                          }}
-                        >
-                          자동 감지됨
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "88px 1fr",
-                        gap: "3px 10px",
-                        fontSize: 12,
-                      }}
-                    >
-                      <span style={{ color: "#8a919a" }}>프록시</span>
-                      <span style={{ fontFamily: "Consolas,monospace", color: "#3a3f45" }}>
-                        {n.isDefault ? `${n.proxy}  (기본값)` : n.proxy}
-                      </span>
-                      <span style={{ color: "#8a919a" }}>인증서</span>
-                      <span style={{ fontFamily: "Consolas,monospace", color: "#3a3f45" }}>{n.cert}</span>
-                    </div>
-                  </div>
+                    자동 감지됨
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "88px 1fr",
+                    gap: "3px 10px",
+                    fontSize: 12,
+                  }}
+                >
+                  <span style={{ color: "#8a919a" }}>프록시</span>
+                  <span style={{ fontFamily: "Consolas,monospace", color: "#3a3f45" }}>
+                    {detectedNet.isDefault ? `${detectedNet.proxy}  (기본값)` : detectedNet.proxy}
+                  </span>
+                  <span style={{ color: "#8a919a" }}>인증서</span>
+                  <span style={{ fontFamily: "Consolas,monospace", color: "#3a3f45" }}>{detectedNet.cert}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p style={{ margin: 0, fontSize: 12, color: "#8a919a", lineHeight: 1.6 }}>
+            소속 망은 프록시 설정을 기준으로 자동 판별되며, 임의로 변경할 수 없습니다.
+          </p>
 
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <button className="btn-primary" onClick={onConfirm} style={{ fontSize: 14, padding: "11px 26px" }}>

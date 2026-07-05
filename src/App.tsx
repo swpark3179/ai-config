@@ -140,7 +140,6 @@ export default function App() {
           detection={state.detection}
           networks={cfg.networks}
           selected={state.network}
-          onSelect={(id) => dispatch({ type: "SET_NETWORK", network: id })}
           onConfirm={confirmNetwork}
           onRedetect={startDetect}
         />
