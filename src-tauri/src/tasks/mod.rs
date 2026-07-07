@@ -4,13 +4,16 @@
 //  - TaskCtx:    실행 컨텍스트(망 정의 + 로그 + dry-run 가드)
 //  - runner_for: id → 구현 매핑 (definitions::tasks() 의 id 와 일치)
 // ============================================================
+pub mod browser;
 pub mod cert;
+pub mod certstore;
 pub mod claude;
 pub mod codex;
 pub mod env;
 pub mod node;
 pub mod npm;
 pub mod userenv;
+pub mod wininet;
 pub mod wt;
 
 use crate::definitions::NetworkDef;
@@ -105,6 +108,9 @@ pub fn runner_for(id: &str) -> Option<Box<dyn TaskRunner>> {
         "env" => Some(Box::new(env::EnvTask)),
         "userenv" => Some(Box::new(userenv::UserEnvTask)),
         "cert" => Some(Box::new(cert::CertTask)),
+        "certstore" => Some(Box::new(certstore::CertStoreTask)),
+        "wininet" => Some(Box::new(wininet::WinInetTask)),
+        "browser" => Some(Box::new(browser::BrowserCheckTask)),
         "node" => Some(Box::new(node::NodeTask)),
         "npm" => Some(Box::new(npm::NpmTask)),
         "claude" => Some(Box::new(claude::ClaudeTask)),
