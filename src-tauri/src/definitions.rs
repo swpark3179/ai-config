@@ -28,6 +28,12 @@ pub const WT_DEPLOY_SHARE: &str = "\\\\deploy\\wt-portable";
 pub const WT_DEST_DIR: &str = "C:\\AISetup\\WindowsTerminal";
 /// 요구되는 Node.js 최소 LTS major 버전 (미만이면 업데이트 시도)
 pub const NODE_MIN_MAJOR: u32 = 22;
+/// [browser] 진단 태스크가 프록시 경유 접속을 점검할 대상 (이름, URL)
+/// 실제 배포 시 자주 쓰는 사내 시스템 주소로 교체한다.
+pub const PROBE_URLS: &[(&str, &str)] = &[
+    ("사내 포털", "https://portal.samsung.net"),
+    ("외부 인터넷", "https://www.google.com"),
+];
 
 // ------------------------------------------------------------
 // 데이터 구조 (프론트 types.ts 와 대응)
@@ -137,11 +143,14 @@ pub fn tasks() -> Vec<TaskDef> {
         task("env", "시스템 환경 변수 적용", "http_proxy · https_proxy · no_proxy · NODE_EXTRA_CA_CERTS"),
         task("userenv", "사용자 환경 변수 충돌 검사", "사용자(HKCU) 변수가 시스템 설정을 덮어쓰는지 확인"),
         task("cert", "인증서 파일 배치", "망별 루트 인증서를 로컬 경로에 복사"),
+        task("certstore", "인증서 신뢰 등록 (브라우저)", "루트 인증서를 Windows 신뢰 저장소에 등록 — Edge·Chrome 인증서 오류 해결"),
+        task("wininet", "브라우저 프록시 설정", "인터넷 옵션(WinINET) 프록시·예외 구성 + WinHTTP 동기화"),
         task("node", "Node.js 확인 및 업데이트", "설치 여부·버전 확인, 구버전이면 최신 LTS로 업데이트"),
         task("npm", "npm 확인", "설치 여부·버전·프록시 설정 확인"),
         task("claude", "Claude Code CLI", "설치 여부 확인, 미설치 시 설치"),
         task("codex", "Codex CLI", "설치 여부·버전 확인, 구버전이면 업데이트"),
         task("wt", "Windows Terminal (Portable)", "포터블 버전을 로컬 경로에 강제 복사"),
+        task("browser", "브라우저 접속 진단 (Edge·Chrome)", "인증서 신뢰·프록시 적용·정책 충돌·사내 시스템 접속 점검"),
     ]
 }
 
@@ -159,6 +168,6 @@ pub fn app_config() -> AppConfig {
         networks: networks(),
         tasks: tasks(),
         planned: planned(),
-        app_version: "v0.3.0 (Prototype)".into(),
+        app_version: format!("v{} (Prototype)", env!("CARGO_PKG_VERSION")),
     }
 }

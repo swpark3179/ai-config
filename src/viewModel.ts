@@ -29,9 +29,15 @@ const CHIP_BY_STATUS: Record<TaskStatus, Chip> = {
   error: { label: "실패", bg: "#fdf3f2", fg: "#c42b1c" },
 };
 
-/** 태스크 상태 → 칩. done이고 커스텀 라벨이면 초록 칩으로 라벨 교체. */
+// 성공이지만 사용자 조치가 남은 결과 칩 (진단 태스크 등) — 경고 톤으로 표시
+const WARN_CHIPS = new Set(["점검 필요", "주의"]);
+
+/** 태스크 상태 → 칩. done이고 커스텀 라벨이면 초록(조치 필요면 주황) 칩으로 라벨 교체. */
 export function chipFor(t: TaskState): Chip {
   if (t.status === "done" && t.output && t.output.chip !== "완료") {
+    if (WARN_CHIPS.has(t.output.chip)) {
+      return { label: t.output.chip, bg: "#fdf6e7", fg: "#9a6b00" };
+    }
     return { label: t.output.chip, bg: "#eef6ee", fg: "#107c10" };
   }
   return CHIP_BY_STATUS[t.status];

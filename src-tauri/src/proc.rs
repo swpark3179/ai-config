@@ -44,6 +44,22 @@ pub async fn probe(sink: &LogSink, cmdline: &str) -> Option<(i32, String)> {
     }
 }
 
+/// probe 와 동일하나 stdout 을 로그로 흘리지 않는다.
+/// certutil -dump 처럼 장문 출력을 파싱용으로만 캡처할 때 사용한다.
+pub async fn probe_quiet(sink: &LogSink, cmdline: &str) -> Option<(i32, String)> {
+    sink.cmd(cmdline.to_string());
+    match shell(cmdline).output().await {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            Some((out.status.code().unwrap_or(-1), stdout))
+        }
+        Err(e) => {
+            sink.warn(format!("→ 실행할 수 없음: {}", e));
+            None
+        }
+    }
+}
+
 /// 명령을 실행하고 출력을 실시간 스트리밍한다. exit code 를 반환.
 pub async fn exec(sink: &LogSink, cmdline: &str) -> Result<i32, AppError> {
     sink.cmd(cmdline.to_string());

@@ -45,11 +45,14 @@ export const MOCK_CONFIG: AppConfig = {
     { id: "env", name: "시스템 환경 변수 적용", desc: "http_proxy · https_proxy · no_proxy · NODE_EXTRA_CA_CERTS" },
     { id: "userenv", name: "사용자 환경 변수 충돌 검사", desc: "사용자(HKCU) 변수가 시스템 설정을 덮어쓰는지 확인" },
     { id: "cert", name: "인증서 파일 배치", desc: "망별 루트 인증서를 로컬 경로에 복사" },
+    { id: "certstore", name: "인증서 신뢰 등록 (브라우저)", desc: "루트 인증서를 Windows 신뢰 저장소에 등록 — Edge·Chrome 인증서 오류 해결" },
+    { id: "wininet", name: "브라우저 프록시 설정", desc: "인터넷 옵션(WinINET) 프록시·예외 구성 + WinHTTP 동기화" },
     { id: "node", name: "Node.js 확인 및 업데이트", desc: "설치 여부·버전 확인, 구버전이면 최신 LTS로 업데이트" },
     { id: "npm", name: "npm 확인", desc: "설치 여부·버전·프록시 설정 확인" },
     { id: "claude", name: "Claude Code CLI", desc: "설치 여부 확인, 미설치 시 설치" },
     { id: "codex", name: "Codex CLI", desc: "설치 여부·버전 확인, 구버전이면 업데이트" },
     { id: "wt", name: "Windows Terminal (Portable)", desc: "포터블 버전을 로컬 경로에 강제 복사" },
+    { id: "browser", name: "브라우저 접속 진단 (Edge·Chrome)", desc: "인증서 신뢰·프록시 적용·정책 충돌·사내 시스템 접속 점검" },
   ],
   planned: [
     { name: "Git 프록시 · SSL 설정", desc: "http.proxy, http.sslCAInfo 자동 구성" },
@@ -116,6 +119,56 @@ function scriptFor(id: string, net: NetworkDef): { script: ScriptLine[]; out: Ta
           [200, `✓ ${net.cert} 배치 완료`, "ok"],
         ],
         out: { chip: "완료", meta: `C:\\AISetup\\certs\\${net.cert}`, toolName: null, toolVer: null, envApplied: null },
+      };
+    case "certstore":
+      return {
+        script: [
+          [350, `certutil -dump C:\\AISetup\\certs\\${net.cert}`, "cmd"],
+          [300, `인증서 주체: CN=${net.cert.replace(".crt", "")}`, "dim"],
+          [300, "신뢰 저장소에 미등록 — 신규 등록", "dim"],
+          [500, `certutil -addstore -f Root C:\\AISetup\\certs\\${net.cert}`, "cmd"],
+          [300, "CertUtil: -addstore 명령이 성공적으로 완료되었습니다.", "dim"],
+          [250, `✓ ${net.cert} 신뢰 저장소(LocalMachine\\Root) 등록 완료`, "ok"],
+          [200, "실행 중인 Edge·Chrome 은 완전히 종료 후 다시 시작해야 적용됩니다", "dim"],
+        ],
+        out: { chip: "완료", meta: "Windows 신뢰 저장소 등록", toolName: null, toolVer: null, envApplied: null },
+      };
+    case "wininet":
+      return {
+        script: [
+          [350, 'reg query "HKCU\\...\\Internet Settings"', "cmd"],
+          [300, "현재: 프록시 미사용 — 브라우저가 사내망 밖으로 직접 연결 시도 중", "warn"],
+          [400, `reg add ... /v ProxyEnable=1 ProxyServer="${net.proxy.replace("http://", "")}"`, "cmd"],
+          [300, "netsh winhttp import proxy source=ie", "cmd"],
+          [250, `✓ 브라우저 프록시 설정 완료 — ${net.proxy.replace("http://", "")} · 예외 ${net.noProxy.split(",").length + 1}건`, "ok"],
+          [200, "Edge·Chrome 은 자동 반영되며, 안 되면 브라우저 재시작", "dim"],
+        ],
+        out: {
+          chip: "완료",
+          meta: `수동 프록시 ${net.proxy.replace("http://", "")} · 예외 ${net.noProxy.split(",").length + 1}건`,
+          toolName: null,
+          toolVer: null,
+          envApplied: null,
+        },
+      };
+    case "browser":
+      return {
+        script: [
+          [300, "── ① 인증서 신뢰 저장소 ──", "dim"],
+          [400, `certutil -store Root "${net.cert.replace(".crt", "")}"`, "cmd"],
+          [250, "✓ 루트 인증서가 신뢰 저장소에 등록됨", "ok"],
+          [300, "── ② 브라우저 프록시 (WinINET) ──", "dim"],
+          [300, `✓ 수동 프록시 적용됨: ${net.proxy.replace("http://", "")}`, "ok"],
+          [300, "── ③ 브라우저 정책(GPO) ──", "dim"],
+          [350, "✓ 프록시를 강제하는 브라우저 정책 없음", "ok"],
+          [300, "── ④ 접속 점검 (프록시 경유) ──", "dim"],
+          [700, "GET https://portal.samsung.net (사내 포털)", "cmd"],
+          [300, "✓ 사내 포털 — HTTP 200", "ok"],
+          [700, "GET https://www.google.com (외부 인터넷)", "cmd"],
+          [300, "✓ 외부 인터넷 — HTTP 200", "ok"],
+          [250, "✓ 브라우저 접속 진단 통과 — 문제가 계속되면 브라우저 완전 종료 후 재시작", "ok"],
+        ],
+        out: { chip: "정상", meta: "인증서·프록시·정책·접속 4항목 통과", toolName: null, toolVer: null, envApplied: null },
       };
     case "node":
       return {
